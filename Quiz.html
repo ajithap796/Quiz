@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BEVAE-181: 100 Important Questions</title>
+    <!-- Confetti Library -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --primary-hover: #1d4ed8;
+            --success: #16a34a;
+            --danger: #dc2626;
+            --background: #f8fafc;
+            --surface: #ffffff;
+            --text: #1e293b;
+            --text-light: #64748b;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--background);
+            color: var(--text);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .quiz-container {
+            background-color: var(--surface);
+            border-radius: 12px;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            width: 100%;
+            max-width: 700px;
+            padding: 30px;
+            position: relative;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid var(--background);
+        }
+
+        .progress, .score {
+            font-weight: 600;
+            font-size: 1.1rem;
+        }
+
+        .score { color: var(--primary); }
+        .progress { color: var(--text-light); }
+
+        .question {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 20px;
+            line-height: 1.5;
+        }
+
+        .options {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .option-btn {
+            background-color: var(--surface);
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 15px;
+            font-size: 1rem;
+            text-align: left;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            color: var(--text);
+        }
+
+        .option-btn:hover:not(:disabled) {
+            border-color: var(--primary);
+            background-color: #eff6ff;
+        }
+
+        .option-btn:disabled { cursor: default; }
+
+        .option-btn.correct {
+            background-color: #dcfce7;
+            border-color: var(--success);
+            color: #14532d;
+            font-weight: bold;
+        }
+
+        .option-btn.wrong {
+            background-color: #fee2e2;
+            border-color: var(--danger);
+            color: #7f1d1d;
+        }
+
+        .feedback-box {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 8px;
+            display: none;
+            animation: fadeIn 0.3s ease-in;
+        }
+
+        .feedback-box.show { display: block; }
+        .feedback-box.success { background-color: #dcfce7; border-left: 4px solid var(--success); }
+        .feedback-box.error { background-color: #fee2e2; border-left: 4px solid var(--danger); }
+        
+        .feedback-title { font-weight: bold; margin-bottom: 5px; font-size: 1.1rem; }
+
+        .nav-buttons {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 25px;
+            gap: 15px;
+        }
+
+        .btn {
+            flex: 1;
+            padding: 12px 20px;
+            font-size: 1rem;
+            font-weight: bold;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .btn-prev { background-color: #e2e8f0; color: var(--text); }
+        .btn-prev:hover { background-color: #cbd5e1; }
+        .btn-prev:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        .btn-next { background-color: var(--primary); color: white; display: none; }
+        .btn-next:hover { background-color: var(--primary-hover); }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="quiz-container">
+        <div class="header">
+            <div class="progress" id="progress">Question 1/100</div>
+            <div class="score" id="score-display">Score: 0</div>
+        </div>
+
+        <div class="question" id="question-text">Loading question...</div>
+        
+        <div class="options" id="options-container"></div>
+
+        <div class="feedback-box" id="feedback-box">
+            <div class="feedback-title" id="feedback-title"></div>
+            <div id="feedback-text"></div>
+        </div>
+
+        <div class="nav-buttons">
+            <button class="btn btn-prev" id="prev-btn" onclick="prevQuestion()" disabled>Previous</button>
+            <button class="btn btn-next" id="next-btn" onclick="nextQuestion()">Next Question</button>
+        </div>
+    </div>
+
+    <script>
+        // --- CUSTOM VOICE AUDIO EFFECTS ---
+function playMalayalamDialogue(isCorrect) {
+    // Create a new audio element
+    const audio = new Audio();
+    
+    // Check if the answer is correct or wrong and load the matching file
+    if (isCorrect) {
+        audio.src = 'Recording (2).m4a'; 
+    } else {
+        audio.src = 'Recording (3).m4a';   
+    }
+    
+    // Play the audio
+    audio.play().catch(error => {
+        console.log("Audio failed to play. Make sure the mp3 files are in the same folder!", error);
+    });
+}
+
+        // --- FULL 100 QUESTIONS DATA ---
+        const questions = [
+            // Part 1: Environment, Ecosystems, and Biomes
+            { q: "1. The term 'Ecology' was first coined by:", o: ["A.G. Tansley", "Ernst Haeckel", "Charles Darwin", "E.P. Odum"], c: 1, e: "German zoologist Ernst Haeckel coined the term 'Ecology' in 1866." },
+            { q: "2. Which of the following is an abiotic component of an ecosystem?", o: ["Bacteria", "Plants", "Temperature", "Fungi"], c: 2, e: "Temperature is a non-living (abiotic) physical factor." },
+            { q: "3. The flow of energy in an ecosystem is always:", o: ["Cyclic", "Multidirectional", "Unidirectional", "Bidirectional"], c: 2, e: "Energy strictly flows in one direction: from the sun to producers, then to consumers." },
+            { q: "4. A transition zone between two distinct ecosystems is known as:", o: ["Ecotype", "Ecotone", "Ecocline", "Ecological niche"], c: 1, e: "An Ecotone is the transitional area where two communities meet and integrate." },
+            { q: "5. The ecological pyramid that can never be inverted is the:", o: ["Pyramid of biomass", "Pyramid of numbers", "Pyramid of energy", "All of the above"], c: 2, e: "Energy pyramids are always upright because energy is lost as heat at each trophic level." },
+            { q: "6. In a typical terrestrial food chain, herbivores occupy which trophic level?", o: ["First Trophic Level", "Second Trophic Level", "Third Trophic Level", "Fourth Trophic Level"], c: 1, e: "Plants are the 1st level, herbivores (plant-eaters) are the 2nd level." },
+            { q: "7. Which of the following is the largest biome on Earth?", o: ["Desert Biome", "Marine Biome", "Tundra Biome", "Tropical Rainforest"], c: 1, e: "The Marine Biome covers over 70% of the Earth's surface." },
+            { q: "8. Permafrost is a defining characteristic of which biome?", o: ["Taiga", "Savanna", "Tundra", "Temperate Grassland"], c: 2, e: "Tundra regions feature permafrost, a permanently frozen layer of soil." },
+            { q: "9. Organisms that actively swim in the open water are classified as:", o: ["Benthos", "Nekton", "Plankton", "Neuston"], c: 1, e: "Nekton are aquatic animals that can swim independently of water currents." },
+            { q: "10. The process of nutrient cycling in ecosystems is formally called:", o: ["Biogeochemical cycles", "Energy flow", "Biological magnification", "Ecological succession"], c: 0, e: "Nutrients move through biological, geological, and chemical processes." },
+            { q: "11. Nitrogen gas makes up approximately what percentage of the Earth's atmosphere?", o: ["21%", "78%", "0.03%", "50%"], c: 1, e: "Nitrogen constitutes about 78% of the Earth's atmosphere." },
+            { q: "12. Coniferous forests are also commonly referred to as:", o: ["Tundra", "Taiga", "Chaparral", "Savanna"], c: 1, e: "Taiga is another name for the boreal coniferous forests." },
+            { q: "13. Epiphytes (plants growing on other plants) are most commonly found in:", o: ["Desert ecosystems", "Tropical rainforests", "Temperate deciduous forests", "Tundra ecosystems"], c: 1, e: "Tropical rainforests have high humidity, supporting plants that grow on tree trunks." },
+            { q: "14. Mangroves are uniquely adapted to thrive in:", o: ["High-altitude mountains", "Freshwater lakes", "Estuaries and coastal wetlands", "Deep ocean trenches"], c: 2, e: "Mangroves adapt to the saline, low-oxygen conditions of coastal estuaries." },
+            { q: "15. Which of the following is a classic example of a Lotic (flowing) ecosystem?", o: ["Lake", "Pond", "River", "Swamp"], c: 2, e: "Lotic ecosystems feature flowing water, such as rivers and streams." },
+            { q: "16. The zone of a lake or ocean where light penetrates and photosynthesis can occur is the:", o: ["Benthic zone", "Aphotic zone", "Photic (Euphotic) zone", "Abyssal zone"], c: 2, e: "The Photic zone receives enough sunlight to support photosynthesis." },
+            { q: "17. The final, stable community in ecological succession is known as the:", o: ["Pioneer community", "Climax community", "Seral community", "Intermediate community"], c: 1, e: "A climax community is stable and self-perpetuating until disrupted." },
+            { q: "18. Coral reefs are often referred to as the:", o: ["Deserts of the sea", "Rainforests of the sea", "Tundras of the sea", "Grasslands of the sea"], c: 1, e: "They are called rainforests of the sea due to their incredible biodiversity." },
+            { q: "19. Autotrophs are fundamentally responsible for:", o: ["Decomposing organic matter", "Consuming other organisms", "Primary production through photosynthesis or chemosynthesis", "Causing diseases"], c: 2, e: "Autotrophs are 'self-feeders' that produce the primary energy for an ecosystem." },
+            { q: "20. Which biome is characterized by distinct wet and dry seasons and scattered trees?", o: ["Savanna", "Desert", "Tropical Rainforest", "Taiga"], c: 0, e: "Savannas are tropical grasslands with widely spaced trees and seasonal rains." },
+            
+            // Part 2: Natural Resources
+            { q: "21. The natural process of soil formation is called:", o: ["Pedogenesis", "Pathogenesis", "Stratification", "Eutrophication"], c: 0, e: "Pedogenesis is the scientific term for soil development." },
+            { q: "22. The dark, organic material in soil formed by the decay of plant and animal matter is:", o: ["Silt", "Clay", "Humus", "Loam"], c: 2, e: "Humus is the rich, organic component of soil that improves fertility." },
+            { q: "23. Which agricultural practice involves clearing forest land by burning for temporary cultivation?", o: ["Terracing", "Jhum (Shifting) cultivation", "Contour ploughing", "Hydroponics"], c: 1, e: "Jhum or shifting cultivation involves slashing and burning vegetation." },
+            { q: "24. A major consequence of overgrazing in arid regions is:", o: ["Increased soil fertility", "Desertification", "Improved water retention", "Forest expansion"], c: 1, e: "Removing vegetation exposes soil to erosion, leading to desertification." },
+            { q: "25. The practice of integrating trees and shrubs with crops or livestock is known as:", o: ["Monoculture", "Agroforestry", "Aquaculture", "Sylviculture"], c: 1, e: "Agroforestry combines agriculture and forestry for sustainable land use." },
+            { q: "26. Which of the following is an example of a non-timber forest product (NTFP)?", o: ["Teak wood", "Plywood", "Honey", "Paper pulp"], c: 2, e: "Honey is harvested from forests without cutting down trees for timber." },
+            { q: "27. The most abundant source of freshwater on Earth (though largely inaccessible) is:", o: ["Ground water", "Rivers and streams", "Glaciers and ice caps", "Lakes"], c: 2, e: "Over 68% of the Earth's freshwater is locked up in ice caps and glaciers." },
+            { q: "28. Excessive pumping of groundwater in coastal areas can lead to:", o: ["Waterlogging", "Eutrophication", "Saltwater intrusion", "Acid rain"], c: 2, e: "Over-pumping reduces freshwater pressure, allowing ocean saltwater to seep into aquifers." },
+            { q: "29. Which irrigation method is highly efficient for water conservation in arid regions?", o: ["Flood irrigation", "Drip irrigation", "Furrow irrigation", "Canal irrigation"], c: 1, e: "Drip irrigation delivers water directly to plant roots, minimizing evaporation." },
+            { q: "30. Salinization of agricultural soil is primarily caused by:", o: ["Excessive use of organic manure", "Poor drainage and excessive irrigation in dry climates", "Heavy rainfall", "Crop rotation"], c: 1, e: "Evaporating irrigation water leaves behind salts, accumulating in poorly drained soils." },
+            { q: "31. Which of the following is a non-renewable resource?", o: ["Solar energy", "Fossil fuels", "Wind energy", "Geothermal energy"], c: 1, e: "Fossil fuels take millions of years to form and cannot be easily replaced." },
+            { q: "32. The main combustible component of Biogas is:", o: ["Carbon dioxide", "Methane", "Hydrogen", "Nitrogen"], c: 1, e: "Biogas is predominantly composed of methane (CH4), making it combustible." },
+            { q: "33. Photovoltaic (PV) cells convert:", o: ["Solar energy directly into electrical energy", "Heat energy into mechanical energy", "Wind energy into electrical energy", "Chemical energy into electrical energy"], c: 0, e: "PV cells generate electricity directly from sunlight." },
+            { q: "34. Energy derived from the internal heat of the Earth is called:", o: ["Tidal energy", "Biomass energy", "Geothermal energy", "Nuclear energy"], c: 2, e: "Geothermal energy harnesses the heat generated beneath the Earth's crust." },
+            { q: "35. Which is the highest grade of coal, containing the most carbon?", o: ["Peat", "Lignite", "Bituminous", "Anthracite"], c: 3, e: "Anthracite is hard coal with the highest carbon content and energy density." },
+            { q: "36. Hydroelectric power is considered a:", o: ["Renewable energy source", "Non-renewable energy source", "Polluting energy source", "Conventional fossil fuel"], c: 0, e: "It relies on the continuous natural water cycle, making it renewable." },
+            { q: "37. The 'Chipko Movement' aimed at protecting forests originated in which Indian state?", o: ["Kerala", "Rajasthan", "Uttarakhand", "Madhya Pradesh"], c: 2, e: "It began in the Reni village of Chamoli district, Uttarakhand in the 1970s." },
+            { q: "38. Rows of trees planted to protect soil from wind erosion are called:", o: ["Shelterbelts", "Contour trenches", "Terraces", "Check dams"], c: 0, e: "Shelterbelts act as windbreaks to protect agricultural land." },
+            { q: "39. Waterlogging typically results in soil becoming:", o: ["Highly fertile", "Deficient in oxygen for plant roots", "Highly acidic", "Dry and cracked"], c: 1, e: "Excess water displaces air in the soil, suffocating plant roots." },
+            { q: "40. Biomass energy can be obtained from:", o: ["Agricultural waste", "Animal dung", "Municipal solid waste", "All of the above"], c: 3, e: "Any organic material from plants or animals can be used for biomass energy." },
+
+            // Part 3: Biodiversity and Conservation
+            { q: "41. Who is widely considered the 'Father of Biodiversity'?", o: ["Rachel Carson", "E.O. Wilson", "Charles Darwin", "Norman Borlaug"], c: 1, e: "E.O. Wilson popularized the term and fiercely advocated for global conservation." },
+            { q: "42. Variation in genes within a particular species is termed:", o: ["Species diversity", "Ecosystem diversity", "Genetic diversity", "Alpha diversity"], c: 2, e: "Genetic diversity allows species to adapt to changing environments." },
+            { q: "43. Species that are found strictly in one specific geographic area and nowhere else are:", o: ["Exotic species", "Endemic species", "Extinct species", "Invasive species"], c: 1, e: "Endemic species are native and restricted to a specific localized area." },
+            { q: "44. Which organization publishes the Red List of Threatened Species?", o: ["UNEP", "WWF", "IUCN", "UNESCO"], c: 2, e: "The International Union for Conservation of Nature (IUCN) maintains the Red List." },
+            { q: "45. Biodiversity 'hotspots' are regions characterized by:", o: ["Low temperatures and high ice cover", "High endemism and extreme threat of habitat loss", "Zero human population", "Abundance of only one plant species"], c: 1, e: "Hotspots have rich, unique biodiversity but face severe human threats." },
+            { q: "46. How many recognized biodiversity hotspots are located in or partially in India?", o: ["2", "4", "6", "10"], c: 1, e: "India contains parts of 4 hotspots: Himalayas, Western Ghats, Indo-Burma, and Sundaland." },
+            { q: "47. A species whose impact on its ecosystem is disproportionately large relative to its abundance is a:", o: ["Flagship species", "Indicator species", "Keystone species", "Invasive species"], c: 2, e: "Removing a keystone species causes drastic changes or collapse in the ecosystem." },
+            { q: "48. Lantana camara and Water Hyacinth are examples of:", o: ["Endemic species", "Alien/Invasive species", "Extinct species", "Keystone species"], c: 1, e: "These are non-native plants that aggressively take over local ecosystems." },
+            { q: "49. The commercial exploitation of biological resources without proper authorization is called:", o: ["Bioaccumulation", "Biopiracy", "Biomagnification", "Bioremediation"], c: 1, e: "Biopiracy is the unethical appropriation of indigenous biological knowledge." },
+            { q: "50. Diversity within a specific habitat or local ecosystem is known as:", o: ["Alpha diversity", "Beta diversity", "Gamma diversity", "Delta diversity"], c: 0, e: "Alpha diversity measures the number of species within a single local habitat." },
+            { q: "51. Which of the following is an In-situ (on-site) conservation strategy?", o: ["Botanical Gardens", "Seed Banks", "Biosphere Reserves", "Zoological Parks"], c: 2, e: "In-situ means conserving species in their natural habitats (like Biosphere Reserves)." },
+            { q: "52. Which of the following is an Ex-situ (off-site) conservation strategy?", o: ["National Parks", "Wildlife Sanctuaries", "Cryopreservation banks", "Sacved Groves"], c: 2, e: "Ex-situ involves protecting species outside their natural habitat." },
+            { q: "53. 'Project Tiger' was launched by the Government of India in the year:", o: ["1970", "1972", "1973", "1980"], c: 2, e: "It was launched in 1973 at the Jim Corbett National Park to save the Bengal Tiger." },
+            { q: "54. The iconic animal featured on the logo of the World Wide Fund for Nature (WWF) is the:", o: ["Tiger", "Giant Panda", "Polar Bear", "Rhinoceros"], c: 1, e: "The Giant Panda named Chi Chi inspired the WWF logo created in 1961." },
+            { q: "55. Forest patches set aside and protected by local communities due to religious beliefs are called:", o: ["National Parks", "Community Reserves", "Sacred Groves", "Biosphere Reserves"], c: 2, e: "Sacred Groves are deeply respected by locals, preserving ancient ecosystems." },
+            { q: "56. CITES is an international agreement primarily concerned with:", o: ["Climate change mitigation", "Control of hazardous waste", "Regulating international trade in endangered species", "Ozone layer protection"], c: 2, e: "CITES ensures international trade doesn't threaten the survival of wild plants and animals." },
+            { q: "57. Compared to a Wildlife Sanctuary, a National Park has:", o: ["Lower levels of protection", "Higher levels of protection and strictly prohibits human exploitation", "Only marine life", "No boundaries"], c: 1, e: "National Parks have stricter regulations with zero human exploitation allowed." },
+            { q: "58. Kaziranga National Park in Assam is most famous for the conservation of the:", o: ["Asiatic Lion", "Snow Leopard", "One-horned Rhinoceros", "Bengal Tiger"], c: 2, e: "It holds the world's largest population of the Indian one-horned rhinoceros." },
+            { q: "59. Preserving genetic material at ultra-low temperatures using liquid nitrogen is known as:", o: ["Vernalization", "Cryopreservation", "Fermentation", "Pasteurization"], c: 1, e: "Cryopreservation freezes genetic material to keep it viable for the future." },
+            { q: "60. The Ramsar Convention focuses on the global conservation of:", o: ["Deserts", "Wetlands", "Coral Reefs", "High-altitude mountains"], c: 1, e: "The treaty was signed in Ramsar, Iran, to protect wetland ecosystems." },
+
+            // Part 4: Environmental Pollution and Waste Management
+            { q: "61. Which of the following is a primary air pollutant?", o: ["Ozone (O3)", "Peroxyacetyl nitrate (PAN)", "Carbon monoxide (CO)", "Sulfuric acid (H2SO4)"], c: 2, e: "CO is emitted directly from sources like car exhausts. The others form via reactions in the air." },
+            { q: "62. Photochemical smog is primarily a result of the interaction between sunlight and:", o: ["Sulfur dioxide and fog", "Nitrogen oxides and Volatile Organic Compounds (VOCs)", "Carbon dioxide and water vapor", "Chlorofluorocarbons (CFCs)"], c: 1, e: "Sunlight triggers a reaction between NOx and VOCs to create photochemical smog." },
+            { q: "63. Acid rain is largely caused by atmospheric emissions of:", o: ["Carbon monoxide and Ozone", "Sulfur dioxide (SO2) and Nitrogen oxides (NOx)", "Methane and CFCs", "Lead and Mercury"], c: 1, e: "SO2 and NOx react with water in the atmosphere to form sulfuric and nitric acids." },
+            { q: "64. The thickness of the stratospheric ozone layer is measured in:", o: ["Decibels (dB)", "Dobson Units (DU)", "Parts per million (ppm)", "Milligrams per liter (mg/L)"], c: 1, e: "The Dobson Unit measures the total amount of ozone in a vertical column of atmosphere." },
+            { q: "65. Which gas makes the largest contribution to the human-caused greenhouse effect?", o: ["Methane", "Nitrous oxide", "Carbon dioxide (CO2)", "Chlorofluorocarbons"], c: 2, e: "While methane is more potent, CO2 is far more abundant due to fossil fuel burning." },
+            { q: "66. Chlorofluorocarbons (CFCs) are most infamous for causing:", o: ["Soil salinization", "Ozone layer depletion", "Eutrophication", "Noise pollution"], c: 1, e: "CFCs break down in the stratosphere, releasing chlorine that destroys ozone molecules." },
+            { q: "67. In the context of air pollution, SPM stands for:", o: ["Solid Particulate Matter", "Suspended Particulate Matter", "Standard Pollution Metric", "Secondary Pollutant Matter"], c: 1, e: "SPM refers to tiny solid or liquid particles suspended in the air." },
+            { q: "68. Noise pollution is quantified in units called:", o: ["Hertz (Hz)", "Decibels (dB)", "Joules (J)", "Watts (W)"], c: 1, e: "Decibels (dB) measure the intensity or loudness of a sound." },
+            { q: "69. According to WHO/Indian standards, the acceptable noise level limit for residential areas during the day is typically:", o: ["40 dB", "55 dB", "75 dB", "90 dB"], c: 1, e: "The daytime limit for residential areas is generally set at 55 dB." },
+            { q: "70. Silicosis is a disease primarily associated with:", o: ["Drinking contaminated water", "Eating heavy-metal contaminated fish", "Occupational exposure to silica dust", "Exposure to radioactive waste"], c: 2, e: "It is a lung disease caused by breathing in tiny bits of silica, common in mining." },
+            { q: "71. The Minamata disease in Japan was caused by consumption of fish contaminated with:", o: ["Lead", "Cadmium", "Arsenic", "Methylmercury"], c: 3, e: "Industrial mercury dumped into the bay biomagnified in fish, poisoning the locals." },
+            { q: "72. Itai-itai disease, which causes severe bone pain, is associated with poisoning by:", o: ["Cadmium", "Mercury", "Iron", "Copper"], c: 0, e: "Cadmium poisoning from mining operations in Japan caused the painful 'itai-itai' disease." },
+            { q: "73. 'Blue baby syndrome' (Methemoglobinemia) in infants is caused by high levels of which chemical in drinking water?", o: ["Fluorides", "Nitrates", "Sulfates", "Chlorides"], c: 1, e: "Excess nitrates bind with hemoglobin, reducing the blood's ability to carry oxygen." },
+            { q: "74. The process by which toxic substances increase in concentration at higher trophic levels in a food chain is:", o: ["Eutrophication", "Bioremediation", "Biomagnification", "Bioleaching"], c: 2, e: "Toxins like DDT magnify as they move up the food chain because they are not excreted." },
+            { q: "75. Biochemical Oxygen Demand (BOD) is a measure of:", o: ["Toxic heavy metals in water", "Organic pollutants in water requiring bacterial decomposition", "Acidity of water", "Dissolved oxygen directly available to fish"], c: 1, e: "High BOD indicates high levels of organic waste that bacteria are consuming oxygen to break down." },
+            { q: "76. Electronic waste (e-waste) is highly hazardous due to the presence of heavy metals such as:", o: ["Iron and Aluminum", "Lead and Cadmium", "Calcium and Potassium", "Sodium and Magnesium"], c: 1, e: "Electronics contain toxic heavy metals like lead, cadmium, and beryllium." },
+            { q: "77. Vermicomposting is a biological method of waste management that utilizes:", o: ["Fungi", "Bacteria", "Earthworms", "Algae"], c: 2, e: "Earthworms break down organic waste into nutrient-rich compost." },
+            { q: "78. The thermal treatment process involving the combustion of solid waste at very high temperatures is called:", o: ["Landfilling", "Incineration", "Composting", "Pyrolysis"], c: 1, e: "Incineration burns waste to ashes, though it can release toxic fumes if not filtered." },
+            { q: "79. The contaminated liquid that drains from a solid waste landfill is called:", o: ["Sludge", "Effluent", "Leachate", "Brine"], c: 2, e: "Leachate must be collected and treated to prevent groundwater contamination." },
+            { q: "80. The foundational principle of modern waste management is often summarized as the '3 Rs', which stand for:", o: ["Reduce, Reuse, Recycle", "Recover, Refuse, Remake", "Renew, Restore, Replant", "Release, Remove, Repair"], c: 0, e: "Reduce generation, Reuse what you can, and Recycle the rest." },
+
+            // Part 5: Global Issues, Policies, and Human Impact
+            { q: "81. The Montreal Protocol (1987) is an international treaty designed to protect the:", o: ["Marine environment", "Stratospheric Ozone layer", "Global climate from greenhouse gases", "Migratory bird species"], c: 1, e: "It successfully phased out the production of ozone-depleting substances like CFCs." },
+            { q: "82. The Kyoto Protocol (1997) was primarily aimed at:", o: ["Regulating international wildlife trade", "Banning single-use plastics", "Reducing emissions of Greenhouse Gases (GHGs)", "Preventing nuclear proliferation"], c: 2, e: "It bound developed countries to emission reduction targets for greenhouse gases." },
+            { q: "83. The historic 1992 'Earth Summit' was held in:", o: ["Kyoto, Japan", "Stockholm, Sweden", "Rio de Janeiro, Brazil", "Paris, France"], c: 2, e: "The UN Conference on Environment and Development took place in Rio de Janeiro." },
+            { q: "84. 'Agenda 21', a comprehensive blueprint for sustainable development, was adopted at which conference?", o: ["Stockholm Conference (1972)", "Rio Earth Summit (1992)", "Johannesburg Summit (2002)", "Paris Agreement (2015)"], c: 1, e: "Agenda 21 was the action plan for the 21st century established at the Rio Summit." },
+            { q: "85. Which of the following greenhouse gases has the highest Global Warming Potential (GWP) per molecule?", o: ["Carbon dioxide (CO2)", "Methane (CH4)", "Nitrous Oxide (N2O)", "Sulfur Hexafluoride (SF6)"], c: 3, e: "SF6 is an incredibly potent greenhouse gas used in electrical switchgear." },
+            { q: "86. The periodic warming of ocean surface waters in the central and eastern Pacific Ocean is called:", o: ["La Niña", "El Niño", "Gulf Stream", "Coriolis Effect"], c: 1, e: "El Niño drastically affects global weather patterns, often causing extreme droughts or floods." },
+            { q: "87. IPCC stands for:", o: ["International Panel on Climate Control", "Intergovernmental Panel on Climate Change", "Indian Pollution Control Committee", "International Protocol on Carbon Change"], c: 1, e: "The IPCC is the UN body responsible for assessing the science related to climate change." },
+            { q: "88. The primary goal of the 2015 Paris Agreement is to limit the global average temperature increase to well below:", o: ["1.5°C above pre-industrial levels", "2.0°C above pre-industrial levels", "3.5°C above pre-industrial levels", "5.0°C above pre-industrial levels"], c: 1, e: "The aim is to keep warming well below 2°C, striving for a 1.5°C limit." },
+            { q: "89. The UNFCCC, the parent treaty of the Kyoto Protocol and Paris Agreement, stands for:", o: ["United Nations Framework Convention on Climate Change", "United Nations Forum for Carbon Control and Conservation", "Universal Federation for Climate Control", "United Nations Federation on Climate Change"], c: 0, e: "It was established in 1992 to stabilize greenhouse gas concentrations." },
+            { q: "90. The concept of 'Sustainable Development' was popularized and formally defined by which 1987 publication?", o: ["The Silent Spring", "The Brundtland Report (Our Common Future)", "The Limits to Growth", "The Stern Review"], c: 1, e: "The Brundtland Commission defined it as development that meets present needs without compromising the future." },
+            { q: "91. The statistical study of human populations (size, structure, and distribution) is known as:", o: ["Geography", "Demography", "Sociology", "Anthropology"], c: 1, e: "Demography helps track population growth and its strain on environmental resources." },
+            { q: "92. The Environment (Protection) Act of India was enacted in the year:", o: ["1972", "1981", "1986", "1992"], c: 2, e: "It was enacted in 1986, largely in response to the 1984 Bhopal Gas Tragedy." },
+            { q: "93. The Wildlife (Protection) Act of India was passed in:", o: ["1972", "1980", "1986", "2002"], c: 0, e: "The 1972 Act provides strict legal protection for wild flora and fauna in India." },
+            { q: "94. The Water (Prevention and Control of Pollution) Act was enacted in India in the year:", o: ["1974", "1981", "1986", "1990"], c: 0, e: "The 1974 Act led to the creation of the Central and State Pollution Control Boards." },
+            { q: "95. In India, NGT stands for:", o: ["National Geographic Trust", "National Green Tribunal", "Natural Gas Transport", "National Greenhouse Taskforce"], c: 1, e: "The NGT was established in 2010 to handle environmental disputes efficiently." },
+            { q: "96. Which instrument is used to record and measure the intensity of earthquakes?", o: ["Barometer", "Seismograph", "Anemometer", "Hygrometer"], c: 1, e: "A seismograph records the seismic waves generated by earthquakes." },
+            { q: "97. A Tsunami is a series of massive ocean waves most commonly generated by:", o: ["High speed oceanic winds", "Tidal gravitational pull", "Underwater earthquakes or volcanic eruptions", "Melting ice caps"], c: 2, e: "Seismic activity displaces massive amounts of water, creating devastating waves." },
+            { q: "98. The tragic Bhopal Gas Disaster of 1984 was caused by the leakage of which toxic gas?", o: ["Phosgene", "Methyl Isocyanate (MIC)", "Mustard Gas", "Carbon Monoxide"], c: 1, e: "MIC gas leaked from the Union Carbide pesticide plant, causing thousands of deaths." },
+            { q: "99. A disease outbreak that spreads rapidly across multiple countries or continents is classified as a:", o: ["Endemic", "Epidemic", "Pandemic", "Sporadic outbreak"], c: 2, e: "A pandemic (like COVID-19) affects a vast global population." },
+            { q: "100. The primary objective of Environmental Education is to:", o: ["Memorize biological names of plants", "Promote an understanding of environmental problems and encourage responsible actions", "Teach advanced chemistry to all students", "Discourage industrial development entirely"], c: 1, e: "It aims to create awareness and drive proactive, sustainable behavioral changes." }
+        ];
+
+        // --- QUIZ LOGIC AND STATE ---
+        let currentQuestionIndex = 0;
+        let score = 0;
+        
+        // Array to remember user choices. Null means unanswered.
+        let userAnswers = new Array(questions.length).fill(null);
+
+        const questionText = document.getElementById('question-text');
+        const optionsContainer = document.getElementById('options-container');
+        const feedbackBox = document.getElementById('feedback-box');
+        const feedbackTitle = document.getElementById('feedback-title');
+        const feedbackText = document.getElementById('feedback-text');
+        const nextBtn = document.getElementById('next-btn');
+        const prevBtn = document.getElementById('prev-btn');
+        const progressText = document.getElementById('progress');
+        const scoreDisplay = document.getElementById('score-display');
+
+        function loadQuestion() {
+            // Reset UI for the new question
+            feedbackBox.className = 'feedback-box';
+            feedbackBox.style.display = 'none';
+            nextBtn.style.display = 'none';
+            optionsContainer.innerHTML = '';
+            
+            // Enable/Disable Previous Button
+            prevBtn.disabled = (currentQuestionIndex === 0);
+
+            const currentQuestion = questions[currentQuestionIndex];
+            progressText.innerText = `Question ${currentQuestionIndex + 1}/${questions.length}`;
+            questionText.innerText = currentQuestion.q;
+
+            // Generate option buttons
+            currentQuestion.o.forEach((optionText, index) => {
+                const button = document.createElement('button');
+                button.className = 'option-btn';
+                button.innerText = optionText;
+                button.onclick = () => selectOption(index, button);
+                optionsContainer.appendChild(button);
+            });
+
+            // If the user already answered this question previously, restore the state
+            if (userAnswers[currentQuestionIndex] !== null) {
+                restoreAnswerState(userAnswers[currentQuestionIndex]);
+            }
+        }
+
+        function selectOption(selectedIndex, selectedButton) {
+            const currentQuestion = questions[currentQuestionIndex];
+            const isCorrect = (selectedIndex === currentQuestion.c);
+            
+            // Save answer in state
+            userAnswers[currentQuestionIndex] = selectedIndex;
+
+            // Disable all buttons and show correct answer
+            const allButtons = optionsContainer.querySelectorAll('.option-btn');
+            allButtons.forEach((btn, index) => {
+                btn.disabled = true;
+                if (index === currentQuestion.c) {
+                    btn.classList.add('correct'); // Highlight correct answer
+                }
+            });
+
+            // Show UI Feedback
+            feedbackBox.style.display = 'block';
+            
+            if (isCorrect) {
+                score++;
+                updateScoreDisplay();
+                selectedButton.classList.add('correct');
+                feedbackBox.className = 'feedback-box success';
+                feedbackTitle.innerText = "🎉 Correct!";
+                feedbackTitle.style.color = "var(--success)";
+                
+                playMalayalamDialogue(true); // Speak correct dialogue
+                triggerConfetti();
+            } else {
+                selectedButton.classList.add('wrong');
+                feedbackBox.className = 'feedback-box error';
+                feedbackTitle.innerText = "❌ Oops! Incorrect.";
+                feedbackTitle.style.color = "var(--danger)";
+                
+                playMalayalamDialogue(false); // Speak wrong dialogue
+            }
+
+            feedbackText.innerText = currentQuestion.e;
+            showNextButton();
+        }
+
+        function restoreAnswerState(selectedIndex) {
+            const currentQuestion = questions[currentQuestionIndex];
+            const isCorrect = (selectedIndex === currentQuestion.c);
+            
+            const allButtons = optionsContainer.querySelectorAll('.option-btn');
+            allButtons.forEach((btn, index) => {
+                btn.disabled = true;
+                if (index === currentQuestion.c) {
+                    btn.classList.add('correct');
+                }
+            });
+
+            if (!isCorrect) {
+                allButtons[selectedIndex].classList.add('wrong');
+                feedbackBox.className = 'feedback-box error';
+                feedbackTitle.innerText = "❌ Oops! Incorrect.";
+                feedbackTitle.style.color = "var(--danger)";
+            } else {
+                feedbackBox.className = 'feedback-box success';
+                feedbackTitle.innerText = "🎉 Correct!";
+                feedbackTitle.style.color = "var(--success)";
+            }
+            
+            feedbackBox.style.display = 'block';
+            feedbackText.innerText = currentQuestion.e;
+            showNextButton();
+        }
+
+        function showNextButton() {
+            nextBtn.style.display = 'block';
+            if (currentQuestionIndex === questions.length - 1) {
+                nextBtn.innerText = "Finish Quiz";
+            } else {
+                nextBtn.innerText = "Next Question";
+            }
+        }
+
+        function updateScoreDisplay() {
+            scoreDisplay.innerText = `Score: ${score}`;
+        }
+
+        function nextQuestion() {
+            if (currentQuestionIndex < questions.length - 1) {
+                currentQuestionIndex++;
+                loadQuestion();
+            } else {
+                showFinalResults();
+            }
+        }
+
+        function prevQuestion() {
+            if (currentQuestionIndex > 0) {
+                currentQuestionIndex--;
+                loadQuestion();
+            }
+        }
+
+        function showFinalResults() {
+            questionText.innerText = "Quiz Completed!";
+            optionsContainer.innerHTML = `
+                <div style="text-align: center; font-size: 1.2rem; padding: 20px;">
+                    <h2>Congratulations!</h2>
+                    <p>You scored <strong>${score}</strong> out of <strong>${questions.length}</strong>.</p>
+                </div>
+            `;
+            feedbackBox.style.display = 'none';
+            document.querySelector('.nav-buttons').style.display = 'none';
+            triggerConfetti(true);
+        }
+
+        function triggerConfetti(big = false) {
+            if (big) {
+                var duration = 4 * 1000;
+                var end = Date.now() + duration;
+                (function frame() {
+                    confetti({ particleCount: 5, angle: 60, spread: 55, origin: { x: 0 } });
+                    confetti({ particleCount: 5, angle: 120, spread: 55, origin: { x: 1 } });
+                    if (Date.now() < end) requestAnimationFrame(frame);
+                }());
+            } else {
+                confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
+            }
+        }
+
+        // Initialize quiz
+        loadQuestion();
+    </script>
+</body>
+</html>
